@@ -1,68 +1,261 @@
+/* src/index.css */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 :root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
-
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
-
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  --bg: #f8fafc;
+  --panel: #ffffff;
+  --primary: #4466f2;
+  --secondary: #38bdf8;
+  --success: #22c55e;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --text: #1e293b;
+  --muted: #64748b;
+  --border: #e2e8f0;
+  --radius: 16px;
 }
 
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
+[data-theme="dark"] {
+  --bg: #0f172a;
+  --panel: #1e293b;
+  --text: #f1f5f9;
+  --muted: #94a3b8;
+  --border: #334155;
 }
 
+/* Base styles */
 body {
-  margin: 0;
+  background-color: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+/* Dashboard Card Styles */
+.dashboard-card {
+  background: var(--panel);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border: 1px solid var(--border);
+  @apply transition-all duration-200;
+}
+
+.dashboard-card:hover {
+  @apply transform shadow-lg;
+}
+
+/* Stat Cards */
+.stat-card {
   display: flex;
-  place-items: center;
-  min-width: 320px;
-  min-height: 100vh;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
+.stat-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--text);
 }
 
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
+.stat-label {
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+/* Progress Bars */
+.progress-bar {
+  width: 100%;
+  height: 8px;
+  background: var(--border);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary), var(--secondary));
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+
+/* Status Pills */
+.status-pill {
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
   font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
-  cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
+  @apply px-3 py-1 rounded-full text-xs font-medium;
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
+.status-pill.taken {
+  background: rgba(34, 197, 94, 0.1);
+  color: var(--success);
+}
+
+.status-pill.pending {
+  background: rgba(245, 158, 11, 0.1);
+  color: var(--warning);
+}
+
+/* Navigation */
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  color: var(--muted);
+  border-radius: 0.5rem;
+  transition: all 0.2s;
+}
+
+.nav-item:hover {
+  background: rgba(148, 163, 184, 0.1);
+}
+
+.nav-item.active {
+  background: rgba(68, 102, 242, 0.1);
+  color: var(--primary);
+}
+
+/* Schedule List */
+.schedule-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.schedule-item:last-child {
+  border-bottom: none;
+}
+
+/* Hydration Progress */
+.hydration-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  @apply space-y-2;
+}
+
+.hydration-value {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.hydration-label {
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+/* Responsive Grid */
+.dashboard-grid {
+  display: grid;
+  gap: 1.5rem;
+  padding: 1.5rem;
+}
+
+@media (min-width: 768px) {
+  .dashboard-grid {
+    grid-template-columns: repeat(12, 1fr);
   }
-  a:hover {
-    color: #747bff;
+}
+
+/* Logo */
+.app-logo {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.app-logo-icon {
+  width: 2.5rem;
+  height: 2.5rem;
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+}
+
+/* Utils */
+.text-gradient {
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Navbar Styles */
+.navbar {
+  @apply fixed top-0 left-0 right-0 bg-white dark:bg-gray-800 shadow-sm z-50;
+}
+
+.nav-container {
+  @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+}
+
+.nav-content {
+  @apply flex items-center justify-between h-16;
+}
+
+.nav-links {
+  @apply flex space-x-4;
+}
+
+.nav-link {
+  @apply flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors;
+  color: var(--muted);
+}
+
+.nav-link:hover {
+  background: rgba(148, 163, 184, 0.1);
+  color: var(--primary);
+}
+
+.nav-link.active {
+  background: rgba(68, 102, 242, 0.1);
+  color: var(--primary);
+}
+
+.nav-link-icon {
+  @apply mr-2 h-5 w-5;
+}
+
+/* Page Layout */
+.page-container {
+  @apply pt-16 min-h-screen;
+}
+
+/* Progress Ring Animation */
+@keyframes progress-ring-fill {
+  100% {
+    stroke-dashoffset: 0;
   }
-  button {
-    background-color: #f9f9f9;
-  }
+}
+
+circle {
+  transition: stroke-dashoffset 0.5s ease;
+}
+
+/* Mood Indicator */
+.mood-indicator {
+  @apply text-2xl transition-transform hover:scale-110;
+}
+
+/* Dashboard Cards */
+.tracker-card {
+  @apply relative overflow-hidden;
+}
+
+.tracker-card::before {
+  content: '';
+  @apply absolute inset-0 bg-gradient-to-br opacity-5;
 }

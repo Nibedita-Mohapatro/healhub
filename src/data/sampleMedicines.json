@@ -1,0 +1,47 @@
+[
+  {
+    "id": 1,
+    "name": "Paracetamol",
+    "dosage": "500mg",
+    "doctor": "Dr. Mehta",
+    "image": "/images/paracetamol.png",
+    "notes": "Take after food. Do not exceed 4 tablets per day.",
+    "createdAt": "2025-10-01"
+  },
+  {
+    "id": 2,
+    "name": "Vitamin D3",
+    "dosage": "1000 IU",
+    "doctor": "Dr. Gupta",
+    "image": "/images/vitamin_d3.png",
+    "notes": "Take once daily in the morning with breakfast.",
+    "createdAt": "2025-10-02"
+  },
+  {
+    "id": 3,
+    "name": "Amoxicillin",
+    "dosage": "250mg",
+    "doctor": "Dr. Sharma",
+    "image": "/images/amoxicillin.png",
+    "notes": "Take every 8 hours. Complete the course even if symptoms improve.",
+    "createdAt": "2025-10-03"
+  },
+  {
+    "id": 4,
+    "name": "Cetirizine",
+    "dosage": "10mg",
+    "doctor": "Dr. Rao",
+    "image": "/images/cetirizine.png",
+    "notes": "Take once at night to relieve allergies or cold symptoms.",
+    "createdAt": "2025-10-04"
+  },
+  {
+    "id": 5,
+    "name": "Iron Supplement",
+    "dosage": "65mg",
+    "doctor": "Dr. Nair",
+    "image": "/images/iron_supplement.png",
+    "notes": "Take after lunch. Avoid taking with tea or coffee.",
+    "createdAt": "2025-10-05"
+  }
+]

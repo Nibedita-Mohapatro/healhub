@@ -1,0 +1,52 @@
+[
+  {
+    "id": 1,
+    "text": "Take care of your body. It’s the only place you have to live.",
+    "author": "Jim Rohn"
+  },
+  {
+    "id": 2,
+    "text": "Health is the greatest gift, contentment the greatest wealth.",
+    "author": "Buddha"
+  },
+  {
+    "id": 3,
+    "text": "A healthy outside starts from the inside.",
+    "author": "Robert Urich"
+  },
+  {
+    "id": 4,
+    "text": "An ounce of prevention is worth a pound of cure.",
+    "author": "Benjamin Franklin"
+  },
+  {
+    "id": 5,
+    "text": "Happiness is nothing more than good health and a bad memory.",
+    "author": "Albert Schweitzer"
+  },
+  {
+    "id": 6,
+    "text": "Your body hears everything your mind says. Stay positive.",
+    "author": "Unknown"
+  },
+  {
+    "id": 7,
+    "text": "Eat to live, not live to eat.",
+    "author": "Socrates"
+  },
+  {
+    "id": 8,
+    "text": "Walking is the best possible exercise. Habituate yourself to walk very far.",
+    "author": "Thomas Jefferson"
+  },
+  {
+    "id": 9,
+    "text": "The greatest wealth is health.",
+    "author": "Virgil"
+  },
+  {
+    "id": 10,
+    "text": "To enjoy the glow of good health, you must exercise.",
+    "author": "Gene Tunney"
+  }
+]
