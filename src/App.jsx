@@ -1,5 +1,5 @@
 // src/App.jsx
-import React from "react";
+import React, { useEffect } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
@@ -19,7 +19,33 @@ import Appointments from "./pages/Appointments";
 import NotFound from "./pages/NotFound";
 import { ROUTES } from "./constants/routes";
 
+import { useApp } from "./context/AppContext"; // central AppContext (theme + data)
+import { useReminders } from "./hooks/useReminders"; // <-- named import (correct)
+
 export default function App() {
+  // read theme from centralized AppContext (keeps UI consistent)
+  const { state } = useApp(); // AppProvider must wrap <App /> in main.jsx
+
+  // mount reminders watcher once (hook is called inside component body)
+  useReminders();
+
+  useEffect(() => {
+    const theme = state?.theme || "light";
+
+    // set data-theme attribute (for your CSS variables)
+    try {
+      document.documentElement.setAttribute("data-theme", theme);
+      // eslint-disable-next-line no-empty, no-unused-vars
+    } catch (e) {}
+
+    // also toggle Tailwind 'dark' class so dark: utilities work
+    if (theme === "dark") {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+  }, [state?.theme]);
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
       <Navbar />
@@ -39,7 +65,7 @@ export default function App() {
           <Route path={ROUTES.PROFILE} element={<Profile />} />
           <Route path={ROUTES.SETTINGS} element={<Settings />} />
           <Route path={ROUTES.LOGIN} element={<Login />} />
-          <Route path={ROUTES.REGISTER} element={<Register />} />
+          <Route path="/register" element={<Register />} />
           <Route path={ROUTES.NOT_FOUND} element={<NotFound />} />
         </Routes>
       </main>

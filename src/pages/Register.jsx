@@ -1,54 +1,33 @@
-import React from "react";
-import { useNavigate } from "react-router-dom";
-import useForm from "../hooks/useForm";
-import { useAuth } from "../context/AuthContext";
-import { useToast } from "../context/ToastContext";
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useApp } from '../context/AppContext';
 
-export default function Register() {
-  const { register } = useAuth();
-  const { addToast } = useToast();
-  const navigate = useNavigate();
+export default function Register(){
+  const { registerUser } = useApp();
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const nav = useNavigate();
 
-  const { values, handleChange, handleSubmit } = useForm({
-    initialValues: { name: "", email: "", password: "" },
-    validate: (v) => {
-      const e = {};
-      if (!v.name) e.name = "Name required";
-      if (!v.email) e.email = "Email required";
-      if (!v.password) e.password = "Password required";
-      return e;
-    },
-    onSubmit: async (vals) => {
-      try {
-        await register(vals);
-        addToast({ title: "Registered", type: "success" });
-        navigate("/");
-      } catch (err) {
-        addToast({ title: "Registration failed", description: err.message || "", type: "error" });
-        throw err;
-      }
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const res = registerUser({ name, email, password });
+    if(res.success){
+      alert('Registered successfully');
+      nav('/');
+    } else {
+      alert(res.message || 'Registration failed');
     }
-  });
+  };
 
   return (
-    <div className="max-w-md mx-auto">
-      <h2 className="text-2xl font-semibold mb-4">Register</h2>
-      <form onSubmit={handleSubmit} className="space-y-3 bg-white dark:bg-gray-800 p-4 rounded">
-        <div>
-          <label className="text-sm">Name</label>
-          <input name="name" value={values.name} onChange={handleChange} className="w-full px-3 py-2 border rounded" />
-        </div>
-        <div>
-          <label className="text-sm">Email</label>
-          <input name="email" value={values.email} onChange={handleChange} className="w-full px-3 py-2 border rounded" />
-        </div>
-        <div>
-          <label className="text-sm">Password</label>
-          <input name="password" type="password" value={values.password} onChange={handleChange} className="w-full px-3 py-2 border rounded" />
-        </div>
-        <div className="flex justify-end">
-          <button type="submit" className="px-4 py-2 bg-green-600 text-white rounded">Create account</button>
-        </div>
+    <div className="max-w-md mx-auto p-4">
+      <h2 className="text-xl font-semibold mb-4">Register</h2>
+      <form onSubmit={handleSubmit} className="space-y-3">
+        <input value={name} onChange={e=>setName(e.target.value)} placeholder="Name" className="w-full p-2 border rounded" required />
+        <input value={email} onChange={e=>setEmail(e.target.value)} placeholder="Email" type="email" className="w-full p-2 border rounded" required />
+        <input value={password} onChange={e=>setPassword(e.target.value)} placeholder="Password" type="password" className="w-full p-2 border rounded" required />
+        <button className="px-4 py-2 bg-blue-600 text-white rounded">Register</button>
       </form>
     </div>
   );

@@ -92,8 +92,7 @@ const ProgressRing = ({ value, size = 60, strokeWidth = 6, color = "blue" }) => 
   const progress = value * circumference / 100;
 
   return (
-    <svg width={size} height={size} className={`progress-ring transform -rotate-90 text-${color}-500`}>
-
+    <svg width={size} height={size} className={`transform -rotate-90 text-${color}-500`}>
       <circle
         className="text-gray-200 dark:text-gray-700"
         strokeWidth={strokeWidth}

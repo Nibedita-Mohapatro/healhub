@@ -1,68 +1,139 @@
 // src/hooks/useReminders.js
 import { useEffect, useRef } from "react";
-import storage from "../utils/storage"; // your storage wrapper
-import { STORAGE_KEYS } from "../constants/storageKeys";
+import { useApp } from "../context/AppContext";
 import { useNotification } from "./useNotification";
 import { useToast } from "../context/ToastContext";
 
 /**
- * useReminders
- * - Polls reminders from storage every minute and triggers notifications
- * - Avoids duplicate notifications within same minute using a Set
+ * Named export: useReminders
  *
- * Note: This hook reads directly from storage to pick up changes by other components.
- * Mount it once (e.g., inside DataProvider or App).
+ * - Watches AppContext.state.reminders as source-of-truth.
+ * - Runs a short-interval checker (15s) to trigger notifications at the right minute.
+ * - Prevents duplicate notifications using a minute-resolution key Set.
+ * - Call this hook once at app mount (e.g., in App.jsx or DataProvider).
  */
 export function useReminders() {
-  const seenRef = useRef(new Set());
-  const { notify } = useNotification();
+  const { state } = useApp();
+  const { requestPermission, notify } = useNotification();
   const toastCtx = useToast();
+  const notifiedRef = useRef(new Set());
+  const cleanupTimerRef = useRef(null);
+
+  // Helper: produce a minute-resolution key string for a Date
+  const minuteKey = (d) => {
+    const dt = new Date(d);
+    if (isNaN(dt)) return null;
+    const y = dt.getFullYear();
+    const m = String(dt.getMonth() + 1).padStart(2, "0");
+    const day = String(dt.getDate()).padStart(2, "0");
+    const hh = String(dt.getHours()).padStart(2, "0");
+    const mm = String(dt.getMinutes()).padStart(2, "0");
+    return `${y}-${m}-${day}T${hh}:${mm}`;
+  };
+
+  // Request permission once on mount (safe no-op if already granted/denied)
+  useEffect(() => {
+    try {
+      requestPermission && requestPermission();
+    // eslint-disable-next-line no-unused-vars
+    } catch (e) {
+      // ignore
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     let mounted = true;
 
-    const checkOnce = async () => {
+    const checkNow = () => {
       try {
-        const reminders = (await storage.getItem(STORAGE_KEYS.REMINDERS)) || [];
+        const reminders = Array.isArray(state?.reminders) ? state.reminders : [];
+
         const now = new Date();
-        const hh = now.getHours();
-        const mm = now.getMinutes();
+        const nowKey = minuteKey(now);
+        if (!nowKey) return;
 
-        reminders.forEach(r => {
-          if (!r || r.taken || r.skipped) return;
-          const rTime = new Date(r.time || r.datetime || r.date || r.scheduledAt);
-          if (isNaN(rTime)) return;
-          if (rTime.getHours() === hh && rTime.getMinutes() === mm) {
-            // unique key per reminder + minute window
-            const key = `${r.id}_${hh}_${mm}`;
-            if (seenRef.current.has(key)) return;
-            seenRef.current.add(key);
+        reminders.forEach((r) => {
+          if (!r) return;
 
-            // notify - use Notification API if possible, fallback to toast
-            const body = r.medicineName ? `${r.medicineName} — ${r.dosage || ""}` : (r.title || "Time for your reminder");
-            notify(r.title || "Reminder", { body }, (title, opts) => {
-              // fallback: add toast via context
-              try { toastCtx.addToast({ title, description: opts.body, type: "info", duration: 5000 }); } catch { /* empty */ }
-            });
+          // skip disabled / already handled reminders
+          if (r.disabled || r.taken || r.skipped) return;
+
+          // accept multiple possible time fields
+          const rawTime = r.time ?? r.datetime ?? r.scheduledAt ?? r.date ?? null;
+          if (!rawTime) return;
+          const remDate = new Date(rawTime);
+          if (isNaN(remDate)) return;
+
+          const remKey = minuteKey(remDate);
+          if (!remKey) return;
+
+          // only notify if the reminder minute matches current minute
+          if (remKey === nowKey) {
+            const uniqueId = `${String(r.id ?? r._id ?? r.title)}::${remKey}`;
+            if (notifiedRef.current.has(uniqueId)) return;
+
+            // Build notification content
+            const title = r.title || r.medicineName || "Reminder";
+            const bodyParts = [];
+            if (r.medicineName) bodyParts.push(r.medicineName);
+            if (r.dosage) bodyParts.push(r.dosage);
+            if (r.notes) bodyParts.push(r.notes);
+            const body = bodyParts.join(" — ") || (r.description || "It's time for your reminder.");
+
+            // Try Notification API via notify() hook; fallback to toast or console
+            try {
+              if (typeof notify === "function") {
+                notify(title, { body, tag: uniqueId, renotify: false });
+              } else if (typeof Notification !== "undefined" && Notification.permission === "granted") {
+                // defensive fallback if notify is not provided
+                new Notification(title, { body, tag: uniqueId, renotify: false });
+              } else {
+                throw new Error("notify not available");
+              }
+            // eslint-disable-next-line no-unused-vars
+            } catch (nerr) {
+              // fallback to toast if notify fails
+              if (toastCtx && typeof toastCtx.addToast === "function") {
+                try {
+                  toastCtx.addToast({ title, description: body, type: "info", duration: 6000 });
+                } catch { /* empty */ }
+              } else {
+                // final fallback: console
+                console.info("Reminder:", title, body);
+              }
+            }
+
+            // mark as notified for this minute
+            notifiedRef.current.add(uniqueId);
           }
         });
-      } catch (e) {
-        console.warn("useReminders check error", e);
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.error("useReminders check error:", err);
       }
     };
 
-    // initial check
-    checkOnce();
+    // initial immediate check
+    checkNow();
 
-    const id = setInterval(() => { if (mounted) checkOnce(); }, 60_000);
+    // run checker every 15 seconds for responsiveness
+    const intervalId = setInterval(() => {
+      if (!mounted) return;
+      checkNow();
+    }, 15_000);
 
-    // clear seen keys each minute + on unmount to avoid memory buildup
-    const clearId = setInterval(() => seenRef.current.clear(), 61_000);
+    // clear notified map every 10 minutes so reminders can re-notify later if still relevant
+    cleanupTimerRef.current = setInterval(() => {
+      notifiedRef.current.clear();
+    }, 10 * 60 * 1000);
 
     return () => {
       mounted = false;
-      clearInterval(id);
-      clearInterval(clearId);
+      clearInterval(intervalId);
+      if (cleanupTimerRef.current) clearInterval(cleanupTimerRef.current);
+      notifiedRef.current.clear();
     };
-  }, [notify, toastCtx]);
+    // Re-run effect when reminders array reference changes so new reminders are noticed immediately
+  }, [state?.reminders, notify, toastCtx]);
 }

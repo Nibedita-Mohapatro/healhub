@@ -4,6 +4,7 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Color variables */
 :root {
   --bg: #f8fafc;
   --panel: #ffffff;
@@ -30,7 +31,9 @@
 body {
   background-color: var(--bg);
   color: var(--text);
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: 'Inter', system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 /* Dashboard Card Styles */
@@ -38,13 +41,14 @@ body {
   background: var(--panel);
   border-radius: var(--radius);
   padding: 1.5rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
   border: 1px solid var(--border);
   @apply transition-all duration-200;
 }
 
 .dashboard-card:hover {
-  @apply transform shadow-lg;
+  /* lift slightly on hover */
+  @apply -translate-y-1 shadow-lg;
 }
 
 /* Stat Cards */
@@ -81,9 +85,14 @@ body {
   transition: width 0.3s ease;
 }
 
+/* Scoped progress-ring SVG styles (avoid global circle rules) */
+.progress-ring circle,
+.progress-ring svg circle {
+  transition: stroke-dashoffset 0.5s ease;
+}
+
 /* Status Pills */
 .status-pill {
-  padding: 0.25rem 0.75rem;
   border-radius: 999px;
   font-size: 0.75rem;
   font-weight: 500;
@@ -91,12 +100,12 @@ body {
 }
 
 .status-pill.taken {
-  background: rgba(34, 197, 94, 0.1);
+  background: rgba(34, 197, 94, 0.08);
   color: var(--success);
 }
 
 .status-pill.pending {
-  background: rgba(245, 158, 11, 0.1);
+  background: rgba(245, 158, 11, 0.08);
   color: var(--warning);
 }
 
@@ -112,11 +121,11 @@ body {
 }
 
 .nav-item:hover {
-  background: rgba(148, 163, 184, 0.1);
+  background: rgba(148, 163, 184, 0.08);
 }
 
 .nav-item.active {
-  background: rgba(68, 102, 242, 0.1);
+  background: rgba(68, 102, 242, 0.08);
   color: var(--primary);
 }
 
@@ -216,12 +225,12 @@ body {
 }
 
 .nav-link:hover {
-  background: rgba(148, 163, 184, 0.1);
+  background: rgba(148, 163, 184, 0.08);
   color: var(--primary);
 }
 
 .nav-link.active {
-  background: rgba(68, 102, 242, 0.1);
+  background: rgba(68, 102, 242, 0.08);
   color: var(--primary);
 }
 
@@ -241,21 +250,32 @@ body {
   }
 }
 
-circle {
-  transition: stroke-dashoffset 0.5s ease;
-}
-
 /* Mood Indicator */
 .mood-indicator {
   @apply text-2xl transition-transform hover:scale-110;
 }
 
-/* Dashboard Cards */
+/* Dashboard Cards / tracker */
 .tracker-card {
   @apply relative overflow-hidden;
 }
 
 .tracker-card::before {
   content: '';
-  @apply absolute inset-0 bg-gradient-to-br opacity-5;
+  position: absolute;
+  inset: 0;
+  /* very subtle gradient background using primary/secondary */
+  background: linear-gradient(135deg, rgba(68,102,242,0.04), rgba(56,189,248,0.03));
+  pointer-events: none;
+}
+
+/* small print-friendly rules for exports/printing */
+@media print {
+  .navbar {
+    display: none !important;
+  }
+  .dashboard-card {
+    box-shadow: none !important;
+    border: none !important;
+  }
 }
