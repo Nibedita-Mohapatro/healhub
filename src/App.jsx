@@ -18,7 +18,7 @@ import BMI from "./pages/BMI";
 import Appointments from "./pages/Appointments";
 import NotFound from "./pages/NotFound";
 import { ROUTES } from "./constants/routes";
-
+import DebugStorage from "./pages/DebugStorage";
 import { useApp } from "./context/AppContext"; // central AppContext (theme + data)
 import { useReminders } from "./hooks/useReminders"; // <-- named import (correct)
 
@@ -67,6 +67,8 @@ export default function App() {
           <Route path={ROUTES.LOGIN} element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path={ROUTES.NOT_FOUND} element={<NotFound />} />
+          <Route path="/debug-storage" element={<DebugStorage />} />
+
         </Routes>
       </main>
 

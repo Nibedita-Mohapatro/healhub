@@ -1,12 +1,21 @@
-// src/constants/storageKeys.js
-
 export const STORAGE_KEYS = {
-  USER: "healhub_user",
+  // AUTH
+  USER: "healhub_user",        // logged in user
+  USERS: "healhub_users",      // ALL registered users (critical)
+
+  // APP SETTINGS
   THEME: "healhub_theme",
+  SETTINGS: "healhub_settings",
+
+  // CORE DATA
   MEDICINES: "healhub_medicines",
   REMINDERS: "healhub_reminders",
-  WATER_TRACKER: "healhub_water_tracker",
+  TRACKERS: "healhub_trackers",
+
+  // DASHBOARD / STATIC
   FOOD_RECIPES: "healhub_recipes",
   QUOTES: "healhub_quotes",
+
+  // BADGES
   ACHIEVEMENTS: "healhub_achievements",
 };
