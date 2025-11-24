@@ -13,6 +13,8 @@ import { generateId } from "../utils/idUtils";
 import { useToast } from "./ToastContext";
 
 const AuthContext = createContext();
+
+// Hook
 // eslint-disable-next-line react-refresh/only-export-components
 export const useAuth = () => useContext(AuthContext);
 
@@ -21,7 +23,7 @@ const USERS_KEY = "healhub_users";
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
 
-  // Fix: Safe Toast Hook Usage
+  /** Toast Fix (safe hook usage inside provider) */
   let toastApi = {};
   try {
     // eslint-disable-next-line react-hooks/rules-of-hooks
@@ -31,19 +33,25 @@ export const AuthProvider = ({ children }) => {
   }
   const { addToast } = toastApi;
 
-  // Load current user on mount
+  /** ---------------------------------------------------
+   *  Load saved user on App start
+   * ---------------------------------------------------*/
   useEffect(() => {
     (async () => {
       try {
         const currentUser = await getItem(STORAGE_KEYS.USER);
-        if (currentUser) setUser(currentUser);
+        if (currentUser) {
+          setUser(currentUser); // 💙 user restored correctly
+        }
       } catch (err) {
         console.error("Error loading current user:", err);
       }
     })();
   }, []);
 
-  // ✅ REGISTER
+  /** ---------------------------------------------------
+   *  REGISTER USER
+   * ---------------------------------------------------*/
   const register = useCallback(
     async ({ name, email, password }) => {
       if (!name || !email || !password) {
@@ -62,14 +70,14 @@ export const AuthProvider = ({ children }) => {
           id: generateId(),
           name,
           email,
-          password, // plain password (demo)
+          password, // ⚠️ plain text (demo only)
           createdAt: new Date().toISOString(),
         };
 
         const updatedUsers = [...users, newUser];
         await setItem(USERS_KEY, updatedUsers);
 
-        // auto-login
+        // Auto-login after register
         await setItem(STORAGE_KEYS.USER, newUser);
         setUser(newUser);
 
@@ -88,7 +96,9 @@ export const AuthProvider = ({ children }) => {
     [addToast]
   );
 
-  // ✅ LOGIN
+  /** ---------------------------------------------------
+   *  LOGIN USER
+   * ---------------------------------------------------*/
   const login = useCallback(
     async ({ email, password }) => {
       if (!email || !password) {
@@ -97,6 +107,7 @@ export const AuthProvider = ({ children }) => {
 
       try {
         const users = (await getItem(USERS_KEY)) || [];
+
         const found = users.find(
           (u) => u.email === email && u.password === password
         );
@@ -123,11 +134,13 @@ export const AuthProvider = ({ children }) => {
     [addToast]
   );
 
-  // ✅ LOGOUT
+  /** ---------------------------------------------------
+   *  LOGOUT USER
+   * ---------------------------------------------------*/
   const logout = useCallback(async () => {
     try {
-      await storage.removeItem(STORAGE_KEYS.USER);
-      setUser(null);
+      await storage.removeItem(STORAGE_KEYS.USER); // removes from IndexedDB
+      setUser(null); // removes from memory
 
       addToast({
         title: "Logged out",

@@ -1,20 +1,23 @@
 // src/components/Navbar.jsx
 import React, { useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
-import { useApp } from "../context/AppContext"; // theme + user + logout
+import { useAuth } from "../context/AuthContext";
+import { useApp } from "../context/AppContext";
 
 export default function Navbar() {
-  const { state, toggleTheme, logout } = useApp();
-  const theme = state?.theme || "light";
-  const user = state?.user || null;
+  const { user, logout } = useAuth();     // actual auth user
+  const { state, toggleTheme } = useApp(); // theme only
 
+  const theme = state?.theme || "light";
   const location = useLocation();
   const [open, setOpen] = useState(false);
 
-  // Detect active link (supports nested routes)
+  // active link styling
   const getLinkClass = (path) => {
     const isActive =
-      location.pathname === path || location.pathname.startsWith(path + "/");
+      location.pathname === path ||
+      location.pathname.startsWith(path + "/");
+
     return isActive
       ? "text-blue-600 dark:text-blue-300 font-semibold underline underline-offset-4"
       : "text-gray-600 dark:text-gray-300 hover:text-blue-500";
@@ -23,7 +26,8 @@ export default function Navbar() {
   return (
     <nav className="bg-white dark:bg-gray-800 shadow-sm sticky top-0 z-50">
       <div className="max-w-6xl mx-auto flex items-center justify-between p-3">
-        {/* LEFT SECTION: LOGO + DESKTOP NAV LINKS */}
+        
+        {/* LEFT — LOGO */}
         <div className="flex items-center gap-6">
           <NavLink to="/" className="flex items-center gap-2">
             <img
@@ -34,38 +38,22 @@ export default function Navbar() {
             <span className="font-bold text-lg">HealHub</span>
           </NavLink>
 
-          {/* Desktop Nav Links */}
+          {/* Desktop links */}
           <div className="hidden sm:flex gap-4">
-            <NavLink to="/" className={() => getLinkClass("/")}>
-              Dashboard
-            </NavLink>
-            <NavLink to="/medicines" className={() => getLinkClass("/medicines")}>
-              Medicines
-            </NavLink>
-            <NavLink to="/reminders" className={() => getLinkClass("/reminders")}>
-              Reminders
-            </NavLink>
-            <NavLink to="/trackers" className={() => getLinkClass("/trackers")}>
-              Trackers
-            </NavLink>
-            <NavLink to="/reports" className={() => getLinkClass("/reports")}>
-              Reports
-            </NavLink>
-            <NavLink to="/bmi" className={() => getLinkClass("/bmi")}>
-              BMI
-            </NavLink>
-            <NavLink
-              to="/appointments"
-              className={() => getLinkClass("/appointments")}
-            >
-              Appointments
-            </NavLink>
+            <NavLink to="/" className={() => getLinkClass("/")}>Dashboard</NavLink>
+            <NavLink to="/medicines" className={() => getLinkClass("/medicines")}>Medicines</NavLink>
+            <NavLink to="/reminders" className={() => getLinkClass("/reminders")}>Reminders</NavLink>
+            <NavLink to="/trackers" className={() => getLinkClass("/trackers")}>Trackers</NavLink>
+            <NavLink to="/reports" className={() => getLinkClass("/reports")}>Reports</NavLink>
+            <NavLink to="/bmi" className={() => getLinkClass("/bmi")}>BMI</NavLink>
+            <NavLink to="/appointments" className={() => getLinkClass("/appointments")}>Appointments</NavLink>
           </div>
         </div>
 
-        {/* RIGHT SECTION: THEME + AUTH + MOBILE MENU */}
+        {/* RIGHT — Theme + Auth */}
         <div className="flex items-center gap-3">
-          {/* Theme Toggle Button */}
+
+          {/* Theme toggle */}
           <button
             onClick={toggleTheme}
             className="px-3 py-1 rounded border text-sm transition-colors hover:bg-gray-100 dark:hover:bg-gray-700"
@@ -73,15 +61,13 @@ export default function Navbar() {
             {theme === "light" ? "Dark" : "Light"}
           </button>
 
-          {/* AUTH AREA */}
+          {/* Auth buttons */}
           {user ? (
             <div className="flex items-center gap-3">
-              {/* Show user name */}
               <span className="hidden sm:inline text-sm font-semibold text-blue-300">
                 {user.name}
               </span>
 
-              {/* Logout Button */}
               <button
                 onClick={logout}
                 className="px-3 py-1 rounded bg-red-500 text-white text-sm hover:bg-red-600"
@@ -90,7 +76,6 @@ export default function Navbar() {
               </button>
             </div>
           ) : (
-            // When user is NOT logged in → show Login button
             <NavLink
               to="/login"
               className={() =>
@@ -102,7 +87,7 @@ export default function Navbar() {
             </NavLink>
           )}
 
-          {/* Mobile Menu Button */}
+          {/* Mobile menu toggle */}
           <button
             onClick={() => setOpen(!open)}
             className="sm:hidden ml-2 p-2 border rounded text-gray-600 dark:text-gray-300"
@@ -112,30 +97,16 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* MOBILE DROPDOWN NAV */}
+      {/* MOBILE MENU */}
       {open && (
         <div className="sm:hidden bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 p-3 space-y-2">
-          <NavLink to="/" className={() => getLinkClass("/") + " block"} onClick={() => setOpen(false)}>
-            Dashboard
-          </NavLink>
-          <NavLink to="/medicines" className={() => getLinkClass("/medicines") + " block"} onClick={() => setOpen(false)}>
-            Medicines
-          </NavLink>
-          <NavLink to="/reminders" className={() => getLinkClass("/reminders") + " block"} onClick={() => setOpen(false)}>
-            Reminders
-          </NavLink>
-          <NavLink to="/trackers" className={() => getLinkClass("/trackers") + " block"} onClick={() => setOpen(false)}>
-            Trackers
-          </NavLink>
-          <NavLink to="/reports" className={() => getLinkClass("/reports") + " block"} onClick={() => setOpen(false)}>
-            Reports
-          </NavLink>
-          <NavLink to="/bmi" className={() => getLinkClass("/bmi") + " block"} onClick={() => setOpen(false)}>
-            BMI
-          </NavLink>
-          <NavLink to="/appointments" className={() => getLinkClass("/appointments") + " block"} onClick={() => setOpen(false)}>
-            Appointments
-          </NavLink>
+          <NavLink to="/" className={() => getLinkClass("/") + " block"} onClick={() => setOpen(false)}>Dashboard</NavLink>
+          <NavLink to="/medicines" className={() => getLinkClass("/medicines") + " block"} onClick={() => setOpen(false)}>Medicines</NavLink>
+          <NavLink to="/reminders" className={() => getLinkClass("/reminders") + " block"} onClick={() => setOpen(false)}>Reminders</NavLink>
+          <NavLink to="/trackers" className={() => getLinkClass("/trackers") + " block"} onClick={() => setOpen(false)}>Trackers</NavLink>
+          <NavLink to="/reports" className={() => getLinkClass("/reports") + " block"} onClick={() => setOpen(false)}>Reports</NavLink>
+          <NavLink to="/bmi" className={() => getLinkClass("/bmi") + " block"} onClick={() => setOpen(false)}>BMI</NavLink>
+          <NavLink to="/appointments" className={() => getLinkClass("/appointments") + " block"} onClick={() => setOpen(false)}>Appointments</NavLink>
         </div>
       )}
     </nav>
