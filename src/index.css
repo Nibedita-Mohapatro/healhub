@@ -4,9 +4,12 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Color variables */
-:root {
-  --bg: #f8fafc;
+/* -------------------------------
+   FIXED THEME VARIABLE SCOPING
+   Now variables change correctly
+--------------------------------*/
+html[data-theme="light"] {
+  --bg: #D1DDED;
   --panel: #ffffff;
   --primary: #4466f2;
   --secondary: #38bdf8;
@@ -19,15 +22,23 @@
   --radius: 16px;
 }
 
-[data-theme="dark"] {
+html[data-theme="dark"] {
   --bg: #0f172a;
   --panel: #1e293b;
   --text: #f1f5f9;
   --muted: #94a3b8;
   --border: #334155;
+  --primary: #4466f2;
+  --secondary: #38bdf8;
+  --success: #22c55e;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --radius: 16px;
 }
 
-/* Base styles */
+/* ---------------------------
+   Base styles
+--------------------------- */
 body {
   background-color: var(--bg);
   color: var(--text);
@@ -47,7 +58,6 @@ body {
 }
 
 .dashboard-card:hover {
-  /* lift slightly on hover */
   @apply -translate-y-1 shadow-lg;
 }
 
@@ -85,7 +95,7 @@ body {
   transition: width 0.3s ease;
 }
 
-/* Scoped progress-ring SVG styles (avoid global circle rules) */
+/* Scoped progress-ring SVG styles */
 .progress-ring circle,
 .progress-ring svg circle {
   transition: stroke-dashoffset 0.5s ease;
@@ -255,7 +265,7 @@ body {
   @apply text-2xl transition-transform hover:scale-110;
 }
 
-/* Dashboard Cards / tracker */
+/* Tracker card */
 .tracker-card {
   @apply relative overflow-hidden;
 }
@@ -264,12 +274,11 @@ body {
   content: '';
   position: absolute;
   inset: 0;
-  /* very subtle gradient background using primary/secondary */
   background: linear-gradient(135deg, rgba(68,102,242,0.04), rgba(56,189,248,0.03));
   pointer-events: none;
 }
 
-/* small print-friendly rules for exports/printing */
+/* Print */
 @media print {
   .navbar {
     display: none !important;

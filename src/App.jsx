@@ -47,7 +47,13 @@ export default function App() {
   }, [state?.theme]);
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+    <div
+    className="min-h-screen"
+    style={{
+      backgroundColor: state.theme === "light" ? "#D1DDED" : "var(--bg)",
+      color: "var(--text)",
+    }}
+  >
       <Navbar />
 
       <main className="max-w-6xl mx-auto p-4">
