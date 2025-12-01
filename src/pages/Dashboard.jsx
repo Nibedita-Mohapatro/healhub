@@ -1,4 +1,4 @@
-// src/pages/Dashboard.jsx
+// src/pages/Dashboard.jsx 
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { ROUTES } from "../constants/routes";
@@ -211,8 +211,30 @@ export default function Dashboard() {
   };
 
   // =============================================================
-  // ✅ WATER — FIXED TO SHOW TOTAL WATER OF TODAY (NOT LAST ENTRY)
+  // NEXT APPOINTMENT LOGIC (FIXED)
   // =============================================================
+  const getNextAppointment = () => {
+    if (!data.appointments?.length) return null;
+
+    const sorted = [...data.appointments].sort(
+      (a, b) => new Date(`${a.date}T${a.time}`) - new Date(`${b.date}T${b.time}`)
+    );
+
+    const now = new Date();
+
+    const upcoming = sorted.filter(
+      (a) => new Date(`${a.date}T${a.time}`) > now
+    );
+
+    if (upcoming.length > 0) return upcoming[0];
+
+    return sorted[sorted.length - 1]; // latest past
+  };
+
+  const nextApp = getNextAppointment();
+  // =============================================================
+
+  // WATER TODAY
   const todayKey = new Date().toISOString().split("T")[0];
 
   const todayWaterEntries = (data.trackers.water || []).filter(
@@ -230,7 +252,6 @@ export default function Dashboard() {
     100,
     Math.round((totalLitres / 8) * 100)
   );
-  // =============================================================
 
   // SLEEP — TOTAL TODAY
   const todaySleepEntries = (data.trackers.sleep || []).filter(
@@ -284,7 +305,6 @@ export default function Dashboard() {
         .length,
     },
 
-    // 🔥 Updated water stats
     water: { liters: totalLitres.toFixed(2).replace(/\.00$/, ""), percentage: waterPercentage },
 
     sleep: { hours: sleepHours, quality: sleepQuality, percentage: sleepPercent },
@@ -348,10 +368,19 @@ export default function Dashboard() {
           color="cyan"
         />
 
+        {/* UPDATED APPOINTMENT CARD */}
         <StatCard
           title="Next Appointment"
-          value={(data.appointments[0] || {}).doctor || "None"}
-          subtitle={(data.appointments[0] || {}).time || "N/A"}
+          value={
+            nextApp
+              ? `${nextApp.type || "Appointment"}`
+              : "No Appointments"
+          }
+          subtitle={
+            nextApp
+              ? `${nextApp.date} • ${nextApp.time}`
+              : "Add one to begin"
+          }
           to={ROUTES.APPOINTMENTS}
           color="green"
         />
