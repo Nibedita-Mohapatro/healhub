@@ -26,7 +26,7 @@ const initial = {
   user: null, // this will be SET only by AuthContext
 
   medicines: [],
-  reminders: [],
+  // reminders removed from AppContext (use DataContext as single source of truth)
   trackers: [],
   appointments: [],
   badges: [],
@@ -62,24 +62,7 @@ function reducer(state, action) {
         ),
       };
 
-    case "SET_REMINDERS":
-      return { ...state, reminders: action.payload };
-    case "ADD_REMINDER":
-      return { ...state, reminders: [action.payload, ...state.reminders] };
-    case "UPDATE_REMINDER":
-      return {
-        ...state,
-        reminders: state.reminders.map((r) =>
-          String(r.id) === String(action.payload.id) ? action.payload : r
-        ),
-      };
-    case "DELETE_REMINDER":
-      return {
-        ...state,
-        reminders: state.reminders.filter(
-          (r) => String(r.id) !== String(action.payload)
-        ),
-      };
+    // reminder cases removed - DataContext is now the single source of truth for reminders
 
     case "SET_TRACKERS":
       return { ...state, trackers: normalizeTrackers(action.payload) };
@@ -135,17 +118,15 @@ function reducer(state, action) {
 export function AppProvider({ children }) {
   const [state, dispatch] = useReducer(reducer, initial);
 
-  // hydrate all app data except user
+  // hydrate all app data except user (reminders intentionally omitted)
   useEffect(() => {
     try {
       dispatch({
         type: "SET_MEDICINES",
         payload: safeParse(localStorage.getItem("medicines") || "[]", []),
       });
-      dispatch({
-        type: "SET_REMINDERS",
-        payload: safeParse(localStorage.getItem("reminders") || "[]", []),
-      });
+      // reminders intentionally not hydrated here - DataContext handles them
+
       dispatch({
         type: "SET_TRACKERS",
         payload: normalizeTrackers(
@@ -176,10 +157,7 @@ export function AppProvider({ children }) {
     [state.medicines]
   );
 
-  useEffect(
-    () => localStorage.setItem("reminders", JSON.stringify(state.reminders)),
-    [state.reminders]
-  );
+  // reminders persistence removed (managed by DataContext)
 
   useEffect(
     () => localStorage.setItem("trackers", JSON.stringify(state.trackers)),
@@ -227,7 +205,7 @@ export function AppProvider({ children }) {
         setTheme,
         logout,
 
-        // Attach all app helpers unchanged
+        // Attach all app helpers unchanged (reminder helpers intentionally removed)
         setMedicines: (list) =>
           dispatch({ type: "SET_MEDICINES", payload: list }),
         addMedicine: (m) =>
@@ -236,13 +214,7 @@ export function AppProvider({ children }) {
             payload: { id: uuidv4(), createdAt: new Date(), ...m },
           }),
 
-        setReminders: (list) =>
-          dispatch({ type: "SET_REMINDERS", payload: list }),
-        addReminder: (r) =>
-          dispatch({
-            type: "ADD_REMINDER",
-            payload: { id: uuidv4(), createdAt: new Date(), ...r },
-          }),
+        // reminder helpers removed - use DataContext instead
 
         setTrackers: (list) =>
           dispatch({ type: "SET_TRACKERS", payload: list }),
@@ -278,4 +250,3 @@ export function AppProvider({ children }) {
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const useApp = () => useContext(AppContext);
- 

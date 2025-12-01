@@ -1,4 +1,4 @@
-// src/pages/Dashboard.jsx idhr ham last wala water tracker fix krne se pehel wala code 
+// src/pages/Dashboard.jsx
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { ROUTES } from "../constants/routes";
@@ -210,22 +210,29 @@ export default function Dashboard() {
     return [...arr].sort((a, b) => new Date(b.date) - new Date(a.date))[0];
   };
 
-  // WATER
-  const convertToLitres = (entry) => {
-    if (!entry) return 0;
-    const raw = entry.value ?? 0;
-    const unit = (entry.unit || "").toLowerCase();
-    if (unit === "l" || unit === "litre" || unit === "liter") return Number(raw) || 0;
-    return (Number(raw) || 0) / 1000;
-  };
-
-  const latestWater = latest("water");
-  const currentWaterLitres = convertToLitres(latestWater);
-  const waterPercentage = Math.round((currentWaterLitres / 8) * 100);
-
-  // SLEEP — TOTAL TODAY LOGIC FIXED
+  // =============================================================
+  // ✅ WATER — FIXED TO SHOW TOTAL WATER OF TODAY (NOT LAST ENTRY)
+  // =============================================================
   const todayKey = new Date().toISOString().split("T")[0];
 
+  const todayWaterEntries = (data.trackers.water || []).filter(
+    (t) => t.date?.split("T")[0] === todayKey
+  );
+
+  const totalMl = todayWaterEntries.reduce(
+    (sum, t) => sum + Number(t.value || 0),
+    0
+  );
+
+  const totalLitres = totalMl / 1000;
+
+  const waterPercentage = Math.min(
+    100,
+    Math.round((totalLitres / 8) * 100)
+  );
+  // =============================================================
+
+  // SLEEP — TOTAL TODAY
   const todaySleepEntries = (data.trackers.sleep || []).filter(
     (t) => t.date?.split("T")[0] === todayKey
   );
@@ -247,24 +254,24 @@ export default function Dashboard() {
 
   const sleepPercent = Math.min(100, Math.round((sleepHours / 12) * 100));
 
-  // EXERCISE
- // EXERCISE — TOTAL FOR TODAY
-const todayExercises = (data.trackers.exercise || []).filter(
-  (t) => t.date?.split("T")[0] === todayKey
-);
+  // EXERCISE — TOTAL FOR TODAY
+  const todayExercises = (data.trackers.exercise || []).filter(
+    (t) => t.date?.split("T")[0] === todayKey
+  );
 
-const exerciseMinutes = todayExercises.reduce(
-  (sum, t) =>
-    sum +
-    Number(
-      typeof t.value === "object"
-        ? t.value.duration || t.value.minutes || 0
-        : t.value || 0
-    ),
-  0
-);
+  const exerciseMinutes = todayExercises.reduce(
+    (sum, t) =>
+      sum +
+      Number(
+        typeof t.value === "object"
+          ? t.value.duration || t.value.minutes || 0
+          : t.value || 0
+      ),
+    0
+  );
 
-const exercisePercent = Math.min(100, Math.round((exerciseMinutes / 60) * 100));
+  const exercisePercent = Math.min(100, Math.round((exerciseMinutes / 60) * 100));
+
   // MOOD
   const latestMood = latest("mood");
   const moodValue = latestMood?.value || "okay";
@@ -276,7 +283,10 @@ const exercisePercent = Math.min(100, Math.round((exerciseMinutes / 60) * 100));
       taken: data.reminders.filter((r) => r.status === REMINDER_STATUS.TAKEN)
         .length,
     },
-    water: { liters: currentWaterLitres, percentage: waterPercentage },
+
+    // 🔥 Updated water stats
+    water: { liters: totalLitres.toFixed(2).replace(/\.00$/, ""), percentage: waterPercentage },
+
     sleep: { hours: sleepHours, quality: sleepQuality, percentage: sleepPercent },
     exercise: { minutes: exerciseMinutes, percentage: exercisePercent },
     mood: { value: moodValue, updated: moodUpdated },
@@ -300,7 +310,6 @@ const exercisePercent = Math.min(100, Math.round((exerciseMinutes / 60) * 100));
 
   return (
     <div id="dashboard-root" className="space-y-6">
-
       {/* HEADER */}
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-semibold">Dashboard</h2>
@@ -367,7 +376,6 @@ const exercisePercent = Math.min(100, Math.round((exerciseMinutes / 60) * 100));
           <h3 className="mb-4 text-lg font-medium">Sleep Quality</h3>
           <div className="flex justify-between items-center">
             <ProgressRing value={stats.sleep.percentage} color="indigo" />
-
             <div className="text-right">
               <div className="text-2xl font-bold">{stats.sleep.hours}h</div>
               <div className="text-sm text-gray-500">of 12h max</div>

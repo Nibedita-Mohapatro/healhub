@@ -1,19 +1,19 @@
 // src/hooks/useReminders.js
 import { useEffect, useRef } from "react";
-import { useApp } from "../context/AppContext";
+import { useData } from "../context/DataContext";
 import { useNotification } from "./useNotification";
 import { useToast } from "../context/ToastContext";
 
 /**
  * Named export: useReminders
  *
- * - Watches AppContext.state.reminders as source-of-truth.
+ * - Watches DataContext.state.reminders as source-of-truth.
  * - Runs a short-interval checker (15s) to trigger notifications at the right minute.
  * - Prevents duplicate notifications using a minute-resolution key Set.
  * - Call this hook once at app mount (e.g., in App.jsx or DataProvider).
  */
 export function useReminders() {
-  const { state } = useApp();
+  const { state } = useData();
   const { requestPermission, notify } = useNotification();
   const toastCtx = useToast();
   const notifiedRef = useRef(new Set());

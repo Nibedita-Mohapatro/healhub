@@ -28,7 +28,7 @@ function timeAgo(dateStr) {
   return `${Math.floor(diff / 86400)}d ago`;
 }
 
-// UI Components
+// UI Components …
 const StatCard = ({ title, value, subtitle, icon, to, color = "blue" }) => (
   <Link
     to={to}
@@ -139,6 +139,10 @@ export default function Dashboard() {
   const { requestPermission } = useNotification();
 
   const [loading, setLoading] = useState(true);
+
+  // REMINDERS FIX → Use ONLY DataContext reminders
+  const reminders = dataState?.reminders || [];
+
   const [data, setData] = useState({
     medicines: [],
     trackers: { water: [], sleep: [], exercise: [], mood: [], meals: [], vitals: [] },
@@ -187,9 +191,12 @@ export default function Dashboard() {
 
   const derive = () => {
     const medicines = [...(appState?.medicines || []), ...(dataState?.medicines || [])];
-    const reminders = [...(appState?.reminders || []), ...(dataState?.reminders || [])];
     const appointments = [...(appState?.appointments || []), ...(dataState?.appointments || [])];
     const badges = [...(appState?.badges || []), ...(dataState?.badges || [])];
+
+    // REMINDERS FIX — USE ONLY dataState.reminders
+    const reminders = dataState?.reminders || [];
+
     const trackers = groupTrackers(mergeTrackers());
     return { medicines, reminders, appointments, badges, trackers };
   };
@@ -204,15 +211,14 @@ export default function Dashboard() {
     }
   }, [appState, dataState]);
 
+  // Utility functions…
   const latest = (type) => {
     const arr = data.trackers[type] || [];
     if (!arr.length) return null;
     return [...arr].sort((a, b) => new Date(b.date) - new Date(a.date))[0];
   };
 
-  // =============================================================
-  // NEXT APPOINTMENT LOGIC (FIXED)
-  // =============================================================
+  // APPOINTMENT LOGIC…
   const getNextAppointment = () => {
     if (!data.appointments?.length) return null;
 
@@ -228,13 +234,15 @@ export default function Dashboard() {
 
     if (upcoming.length > 0) return upcoming[0];
 
-    return sorted[sorted.length - 1]; // latest past
+    return sorted[sorted.length - 1];
   };
 
   const nextApp = getNextAppointment();
-  // =============================================================
 
-  // WATER TODAY
+  // =======================================================
+  // WATER, SLEEP, EXERCISE, MOOD — unchanged
+  // =======================================================
+
   const todayKey = new Date().toISOString().split("T")[0];
 
   const todayWaterEntries = (data.trackers.water || []).filter(
@@ -253,7 +261,6 @@ export default function Dashboard() {
     Math.round((totalLitres / 8) * 100)
   );
 
-  // SLEEP — TOTAL TODAY
   const todaySleepEntries = (data.trackers.sleep || []).filter(
     (t) => t.date?.split("T")[0] === todayKey
   );
@@ -275,7 +282,6 @@ export default function Dashboard() {
 
   const sleepPercent = Math.min(100, Math.round((sleepHours / 12) * 100));
 
-  // EXERCISE — TOTAL FOR TODAY
   const todayExercises = (data.trackers.exercise || []).filter(
     (t) => t.date?.split("T")[0] === todayKey
   );
@@ -293,16 +299,19 @@ export default function Dashboard() {
 
   const exercisePercent = Math.min(100, Math.round((exerciseMinutes / 60) * 100));
 
-  // MOOD
   const latestMood = latest("mood");
   const moodValue = latestMood?.value || "okay";
   const moodUpdated = latestMood?.date ? timeAgo(latestMood.date) : "N/A";
 
+  // =======================================================
+  // FIXED MEDICINE + REMINDER STATS
+  // =======================================================
   const stats = {
     medicines: {
       total: data.medicines.length,
-      taken: data.reminders.filter((r) => r.status === REMINDER_STATUS.TAKEN)
-        .length,
+      
+      // FIX — count taken reminders correctly
+      taken: reminders.filter(r => r.taken).length,
     },
 
     water: { liters: totalLitres.toFixed(2).replace(/\.00$/, ""), percentage: waterPercentage },
@@ -310,6 +319,7 @@ export default function Dashboard() {
     sleep: { hours: sleepHours, quality: sleepQuality, percentage: sleepPercent },
     exercise: { minutes: exerciseMinutes, percentage: exercisePercent },
     mood: { value: moodValue, updated: moodUpdated },
+
     vitals:
       latest("vitals")?.value || { bp: "N/A", hr: "N/A", temp: "N/A" },
     meals:
@@ -352,7 +362,7 @@ export default function Dashboard() {
       </div>
 
       {/* STATS CARDS */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md-grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard
           title="Today's Medicines"
           value={`${stats.medicines.taken}/${stats.medicines.total}`}
@@ -368,19 +378,10 @@ export default function Dashboard() {
           color="cyan"
         />
 
-        {/* UPDATED APPOINTMENT CARD */}
         <StatCard
           title="Next Appointment"
-          value={
-            nextApp
-              ? `${nextApp.type || "Appointment"}`
-              : "No Appointments"
-          }
-          subtitle={
-            nextApp
-              ? `${nextApp.date} • ${nextApp.time}`
-              : "Add one to begin"
-          }
+          value={nextApp ? `${nextApp.type || "Appointment"}` : "No Appointments"}
+          subtitle={nextApp ? `${nextApp.date} • ${nextApp.time}` : "Add one to begin"}
           to={ROUTES.APPOINTMENTS}
           color="green"
         />
@@ -388,8 +389,7 @@ export default function Dashboard() {
         <StatCard
           title="Reminders"
           value={
-            data.reminders.filter((r) => r.status === REMINDER_STATUS.PENDING)
-              .length
+            reminders.filter(r => !r.taken && !r.skipped).length
           }
           subtitle="pending alerts"
           to={ROUTES.REMINDERS}
@@ -399,7 +399,7 @@ export default function Dashboard() {
 
       {/* HEALTH METRICS */}
       <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
-
+        
         {/* Sleep */}
         <div className="dashboard-card bg-white dark:bg-gray-800 rounded-xl p-6">
           <h3 className="mb-4 text-lg font-medium">Sleep Quality</h3>
@@ -418,9 +418,7 @@ export default function Dashboard() {
           <div className="flex justify-between items-center">
             <ProgressRing value={stats.exercise.percentage} color="emerald" />
             <div className="text-right">
-              <div className="text-2xl font-bold">
-                {stats.exercise.minutes} min
-              </div>
+              <div className="text-2xl font-bold">{stats.exercise.minutes} min</div>
               <div className="text-sm text-gray-500">minutes today</div>
             </div>
           </div>
@@ -433,9 +431,7 @@ export default function Dashboard() {
             <MoodIndicator mood={stats.mood.value} />
             <div className="text-right">
               <div className="text-lg font-medium">{stats.mood.value}</div>
-              <div className="text-sm text-gray-500">
-                Updated {stats.mood.updated}
-              </div>
+              <div className="text-sm text-gray-500">Updated {stats.mood.updated}</div>
             </div>
           </div>
         </div>

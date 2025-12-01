@@ -1,4 +1,4 @@
-// src/pages/Dashboard.jsx  before second issue solved of third issue 
+// src/pages/Dashboard.jsx //before issue fix of reminder dashboard
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { ROUTES } from "../constants/routes";
@@ -6,19 +6,17 @@ import { useData } from "../context/DataContext";
 import { useApp } from "../context/AppContext";
 import { useNotification } from "../hooks/useNotification";
 import quote from "../data/quotes.json";
-import LineChartComponent from "../components/charts/LineChartComponent";
 import PieChartComponent from "../components/charts/PieChartComponent";
 import { exportNodeAsPDF, exportToCSV } from "../utils/exportUtils";
 import { REMINDER_STATUS } from "../constants/appConstants";
 
+// Utility: pick random quote
 function pickRandom(arr) {
   if (!arr || arr.length === 0) return null;
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
-// ---------------------------------------------------------------
-//  SMALL HELPER: MAKE TIMESTAMP → “2h ago”
-// ---------------------------------------------------------------
+// Human-readable time difference
 function timeAgo(dateStr) {
   if (!dateStr) return "N/A";
   const d = new Date(dateStr);
@@ -30,32 +28,39 @@ function timeAgo(dateStr) {
   return `${Math.floor(diff / 86400)}d ago`;
 }
 
-// ---------------------------------------------------------------
-//  COMPONENTS (unchanged UI) 
-// ---------------------------------------------------------------
+// UI Components
 const StatCard = ({ title, value, subtitle, icon, to, color = "blue" }) => (
   <Link
     to={to}
     className="dashboard-card bg-white dark:bg-gray-800 rounded-xl p-6 hover:shadow-lg transition-shadow"
   >
     <div className="flex justify-between items-start mb-4">
-      <h3 className="text-lg font-medium text-gray-700 dark:text-gray-200">{title}</h3>
+      <h3 className="text-lg font-medium text-gray-700 dark:text-gray-200">
+        {title}
+      </h3>
       <span className={`text-${color}-500`}>{icon}</span>
     </div>
     <div className="stat-card">
       <div className="stat-value text-3xl font-bold">{value}</div>
-      <div className="stat-label text-gray-500 dark:text-gray-400">{subtitle}</div>
+      <div className="stat-label text-gray-500 dark:text-gray-400">
+        {subtitle}
+      </div>
     </div>
   </Link>
 );
 
 const ProgressRing = ({ value, size = 60, strokeWidth = 6, color = "blue" }) => {
+  const clamped = Math.max(0, Math.min(100, Number(value) || 0));
   const radius = (size - strokeWidth) / 2;
   const circumference = radius * 2 * Math.PI;
-  const progress = value * circumference / 100;
+  const progress = (clamped / 100) * circumference;
 
   return (
-    <svg width={size} height={size} className={`progress-ring transform -rotate-90 text-${color}-500`}>
+    <svg
+      width={size}
+      height={size}
+      className={`progress-ring transform -rotate-90 text-${color}-500`}
+    >
       <circle
         className="text-gray-200 dark:text-gray-700"
         strokeWidth={strokeWidth}
@@ -87,7 +92,7 @@ const MoodIndicator = ({ mood }) => {
     good: "🙂",
     okay: "😐",
     bad: "😕",
-    terrible: "😢"
+    terrible: "😢",
   };
   return <span className="text-2xl">{map[mood] || "😐"}</span>;
 };
@@ -128,9 +133,6 @@ const MealCard = ({ meals }) => (
   </div>
 );
 
-// ---------------------------------------------------------------
-//                   📌 MAIN DASHBOARD FIX
-// ---------------------------------------------------------------
 export default function Dashboard() {
   const { state: appState } = useApp();
   const { state: dataState } = useData();
@@ -142,37 +144,33 @@ export default function Dashboard() {
     trackers: { water: [], sleep: [], exercise: [], mood: [], meals: [], vitals: [] },
     reminders: [],
     appointments: [],
-    badges: []
+    badges: [],
   });
 
-  const randomQuote = pickRandom(quote);
+  const rquote = pickRandom(quote);
 
-  //-----------------------------------------------------------
-  // NORMALIZE TRACKERS FROM BOTH CONTEXTS
-  //-----------------------------------------------------------
-  const normalizeTrackers = (t) => {
-    if (!t) return [];
-    if (Array.isArray(t)) return t;
-    if (typeof t === "object") return Object.values(t).flat();
+  const normalize = (raw) => {
+    if (!raw) return [];
+    if (Array.isArray(raw)) return raw;
+    if (typeof raw === "object") return Object.values(raw).flat().filter(Boolean);
     return [];
   };
 
   const mergeTrackers = () => {
-    const a = normalizeTrackers(appState?.trackers);
-    const b = normalizeTrackers(dataState?.trackers);
-
+    const a = normalize(appState?.trackers);
+    const b = normalize(dataState?.trackers);
     const merged = [...a, ...b];
 
     const map = new Map();
     merged.forEach((t) => {
       if (!t) return;
       const id = t.id || `${t.type}-${t.date}`;
-      if (!map.has(id)) {
-        map.set(id, t);
-      } else {
-        const existing = new Date(map.get(id).date);
-        const incoming = new Date(t.date);
-        if (incoming > existing) map.set(id, t);
+      const existing = map.get(id);
+      if (!existing) map.set(id, t);
+      else {
+        const exDate = new Date(existing.date);
+        const tDate = new Date(t.date);
+        if (tDate > exDate) map.set(id, t);
       }
     });
 
@@ -187,125 +185,141 @@ export default function Dashboard() {
     return g;
   };
 
-  //-----------------------------------------------------------
-  //        📌 MERGE EVERYTHING FROM AppContext + DataContext
-  //-----------------------------------------------------------
-  const deriveData = () => {
-    const medicines = [
-      ...(appState?.medicines || []),
-      ...(dataState?.medicines || [])
-    ];
-
-    const reminders = [
-      ...(appState?.reminders || []),
-      ...(dataState?.reminders || [])
-    ];
-
-    const appointments = [
-      ...(appState?.appointments || []),
-      ...(dataState?.appointments || [])
-    ];
-
-    const badges = [
-      ...(appState?.badges || []),
-      ...(dataState?.badges || [])
-    ];
-
-    const mergedTrackers = groupTrackers(mergeTrackers());
-
-    return { medicines, reminders, appointments, badges, trackers: mergedTrackers };
+  const derive = () => {
+    const medicines = [...(appState?.medicines || []), ...(dataState?.medicines || [])];
+    const reminders = [...(appState?.reminders || []), ...(dataState?.reminders || [])];
+    const appointments = [...(appState?.appointments || []), ...(dataState?.appointments || [])];
+    const badges = [...(appState?.badges || []), ...(dataState?.badges || [])];
+    const trackers = groupTrackers(mergeTrackers());
+    return { medicines, reminders, appointments, badges, trackers };
   };
 
-  //-----------------------------------------------------------
-  //          APPLY MERGED DATA WHEN CONTEXT UPDATES
-  //-----------------------------------------------------------
   useEffect(() => {
-    requestPermission();
+    requestPermission().catch(() => {});
     setLoading(true);
     try {
-      setData(deriveData());
+      setData(derive());
     } finally {
       setLoading(false);
     }
   }, [appState, dataState]);
 
-  //-----------------------------------------------------------
-  //                GET LATEST ENTRY BY TYPE
-  //-----------------------------------------------------------
-  const getLatest = (type) => {
+  const latest = (type) => {
     const arr = data.trackers[type] || [];
     if (!arr.length) return null;
     return [...arr].sort((a, b) => new Date(b.date) - new Date(a.date))[0];
   };
 
-  //-----------------------------------------------------------
-  //                FIX WATER ML → LITRES
-  //-----------------------------------------------------------
-  const waterSeries = (data.trackers.water || [])
-    .slice(-7)
-    .map((t) => ({
-      date: new Date(t.date).toLocaleDateString(),
-      value: Number(t.value || 0) / 1000 // FIXED: ml → L
-    }));
+  // =============================================================
+  // NEXT APPOINTMENT LOGIC (FIXED)
+  // =============================================================
+  const getNextAppointment = () => {
+    if (!data.appointments?.length) return null;
 
-  const latestWater = getLatest("water");
-  const waterLiters = latestWater ? Number(latestWater.value || 0) / 1000 : 0;
-  const waterPercentage = Math.round((waterLiters / 8) * 100);
+    const sorted = [...data.appointments].sort(
+      (a, b) => new Date(`${a.date}T${a.time}`) - new Date(`${b.date}T${b.time}`)
+    );
 
-  //-----------------------------------------------------------
-  //          FIX SLEEP, EXERCISE, MOOD FOR DASHBOARD
-  //-----------------------------------------------------------
-  const latestSleep = getLatest("sleep");
-  const sleepHours = latestSleep?.value?.hours || 0;
-  const sleepQuality = latestSleep?.value?.quality || 0;
+    const now = new Date();
 
-  const latestExercise = getLatest("exercise");
-  const exerciseSteps =
-    latestExercise?.value?.steps ||
-    latestExercise?.value?.duration ||
-    0;
+    const upcoming = sorted.filter(
+      (a) => new Date(`${a.date}T${a.time}`) > now
+    );
 
-  const latestMood = getLatest("mood");
+    if (upcoming.length > 0) return upcoming[0];
+
+    return sorted[sorted.length - 1]; // latest past
+  };
+
+  const nextApp = getNextAppointment();
+  // =============================================================
+
+  // WATER TODAY
+  const todayKey = new Date().toISOString().split("T")[0];
+
+  const todayWaterEntries = (data.trackers.water || []).filter(
+    (t) => t.date?.split("T")[0] === todayKey
+  );
+
+  const totalMl = todayWaterEntries.reduce(
+    (sum, t) => sum + Number(t.value || 0),
+    0
+  );
+
+  const totalLitres = totalMl / 1000;
+
+  const waterPercentage = Math.min(
+    100,
+    Math.round((totalLitres / 8) * 100)
+  );
+
+  // SLEEP — TOTAL TODAY
+  const todaySleepEntries = (data.trackers.sleep || []).filter(
+    (t) => t.date?.split("T")[0] === todayKey
+  );
+
+  const sleepHours = todaySleepEntries.reduce(
+    (sum, t) => sum + Number(t.value?.hours || 0),
+    0
+  );
+
+  const sleepQuality =
+    todaySleepEntries.length > 0
+      ? Math.round(
+          todaySleepEntries.reduce(
+            (sum, t) => sum + Number(t.value?.quality || 0),
+            0
+          ) / todaySleepEntries.length
+        )
+      : 0;
+
+  const sleepPercent = Math.min(100, Math.round((sleepHours / 12) * 100));
+
+  // EXERCISE — TOTAL FOR TODAY
+  const todayExercises = (data.trackers.exercise || []).filter(
+    (t) => t.date?.split("T")[0] === todayKey
+  );
+
+  const exerciseMinutes = todayExercises.reduce(
+    (sum, t) =>
+      sum +
+      Number(
+        typeof t.value === "object"
+          ? t.value.duration || t.value.minutes || 0
+          : t.value || 0
+      ),
+    0
+  );
+
+  const exercisePercent = Math.min(100, Math.round((exerciseMinutes / 60) * 100));
+
+  // MOOD
+  const latestMood = latest("mood");
   const moodValue = latestMood?.value || "okay";
   const moodUpdated = latestMood?.date ? timeAgo(latestMood.date) : "N/A";
 
-  //-----------------------------------------------------------
-  //                   STATS OBJECT
-  //-----------------------------------------------------------
   const stats = {
     medicines: {
       total: data.medicines.length,
       taken: data.reminders.filter((r) => r.status === REMINDER_STATUS.TAKEN)
-        .length
+        .length,
     },
-    water: {
-      liters: waterLiters,
-      percentage: waterPercentage
-    },
-    sleep: {
-      hours: sleepHours,
-      quality: sleepQuality
-    },
-    exercise: {
-      steps: exerciseSteps,
-      minutes: latestExercise?.value?.duration || 0
-    },
-    mood: {
-      value: moodValue,
-      updated: moodUpdated
-    },
-    vitals: getLatest("vitals")?.value || { bp: "N/A", hr: "N/A", temp: "N/A" },
+
+    water: { liters: totalLitres.toFixed(2).replace(/\.00$/, ""), percentage: waterPercentage },
+
+    sleep: { hours: sleepHours, quality: sleepQuality, percentage: sleepPercent },
+    exercise: { minutes: exerciseMinutes, percentage: exercisePercent },
+    mood: { value: moodValue, updated: moodUpdated },
+    vitals:
+      latest("vitals")?.value || { bp: "N/A", hr: "N/A", temp: "N/A" },
     meals:
-      getLatest("meals")?.value || [
+      latest("meals")?.value || [
         { type: "Breakfast", taken: false },
         { type: "Lunch", taken: false },
-        { type: "Dinner", taken: false }
-      ]
+        { type: "Dinner", taken: false },
+      ],
   };
 
-  //-----------------------------------------------------------
-  //                        RENDER
-  //-----------------------------------------------------------
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -317,29 +331,28 @@ export default function Dashboard() {
   return (
     <div id="dashboard-root" className="space-y-6">
       {/* HEADER */}
-      <div className="flex justify-between items-center mb-4">
+      <div className="flex justify-between items-center">
         <h2 className="text-2xl font-semibold">Dashboard</h2>
         <div className="space-x-2">
           <button
             onClick={() =>
               exportNodeAsPDF(document.getElementById("dashboard-root"))
             }
-            className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+            className="px-4 py-2 bg-blue-500 text-white rounded-lg"
           >
             Export PDF
           </button>
           <button
             onClick={() => exportToCSV(data.medicines, "medicines.csv")}
-            className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
+            className="px-4 py-2 bg-green-500 text-white rounded-lg"
           >
             Export CSV
           </button>
         </div>
       </div>
 
-      {/* PRIMARY STATS GRID */}
+      {/* STATS CARDS */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-
         <StatCard
           title="Today's Medicines"
           value={`${stats.medicines.taken}/${stats.medicines.total}`}
@@ -355,113 +368,167 @@ export default function Dashboard() {
           color="cyan"
         />
 
+        {/* UPDATED APPOINTMENT CARD */}
         <StatCard
           title="Next Appointment"
-          value={(data.appointments[0] || {}).doctor || "None"}
-          subtitle={(data.appointments[0] || {}).time || "N/A"}
+          value={
+            nextApp
+              ? `${nextApp.type || "Appointment"}`
+              : "No Appointments"
+          }
+          subtitle={
+            nextApp
+              ? `${nextApp.date} • ${nextApp.time}`
+              : "Add one to begin"
+          }
           to={ROUTES.APPOINTMENTS}
           color="green"
         />
 
         <StatCard
           title="Reminders"
-          value={data.reminders.filter(r => r.status === REMINDER_STATUS.PENDING).length}
+          value={
+            data.reminders.filter((r) => r.status === REMINDER_STATUS.PENDING)
+              .length
+          }
           subtitle="pending alerts"
           to={ROUTES.REMINDERS}
           color="orange"
         />
-
       </div>
 
-      {/* HEALTH METRICS GRID */}
+      {/* HEALTH METRICS */}
       <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
 
-        {/* SLEEP */}
+        {/* Sleep */}
         <div className="dashboard-card bg-white dark:bg-gray-800 rounded-xl p-6">
-          <h3 className="text-lg font-medium mb-4">Sleep Quality</h3>
-          <div className="flex items-center justify-between">
-            <ProgressRing value={stats.sleep.quality} color="indigo" />
+          <h3 className="mb-4 text-lg font-medium">Sleep Quality</h3>
+          <div className="flex justify-between items-center">
+            <ProgressRing value={stats.sleep.percentage} color="indigo" />
             <div className="text-right">
               <div className="text-2xl font-bold">{stats.sleep.hours}h</div>
-              <div className="text-sm text-gray-500">of 8h target</div>
+              <div className="text-sm text-gray-500">of 12h max</div>
             </div>
           </div>
         </div>
 
-        {/* EXERCISE */}
+        {/* Exercise */}
         <div className="dashboard-card bg-white dark:bg-gray-800 rounded-xl p-6">
-          <h3 className="text-lg font-medium mb-4">Exercise Progress</h3>
-          <div className="flex items-center justify-between">
-            <ProgressRing
-              value={(stats.exercise.minutes / 60) * 100}
-              color="emerald"
-            />
+          <h3 className="mb-4 text-lg font-medium">Exercise Progress</h3>
+          <div className="flex justify-between items-center">
+            <ProgressRing value={stats.exercise.percentage} color="emerald" />
             <div className="text-right">
-              <div className="text-2xl font-bold">{stats.exercise.steps}</div>
-              <div className="text-sm text-gray-500">steps today</div>
+              <div className="text-2xl font-bold">
+                {stats.exercise.minutes} min
+              </div>
+              <div className="text-sm text-gray-500">minutes today</div>
             </div>
           </div>
         </div>
 
-        {/* MOOD */}
+        {/* Mood */}
         <div className="dashboard-card bg-white dark:bg-gray-800 rounded-xl p-6">
-          <h3 className="text-lg font-medium mb-4">Mood Timeline</h3>
-          <div className="flex items-center justify-center space-x-4">
+          <h3 className="mb-4 text-lg font-medium">Mood Timeline</h3>
+          <div className="flex justify-center items-center space-x-4">
             <MoodIndicator mood={stats.mood.value} />
             <div className="text-right">
               <div className="text-lg font-medium">{stats.mood.value}</div>
-              <div className="text-sm text-gray-500">Updated {stats.mood.updated}</div>
+              <div className="text-sm text-gray-500">
+                Updated {stats.mood.updated}
+              </div>
             </div>
           </div>
         </div>
 
-        {/* VITALS */}
+        {/* Vitals */}
         <div className="dashboard-card bg-white dark:bg-gray-800 rounded-xl p-6">
-          <h3 className="text-lg font-medium mb-4">Vital Signs</h3>
+          <h3 className="mb-4 text-lg font-medium">Vital Signs</h3>
           <VitalsCard {...stats.vitals} />
         </div>
 
-        {/* MEALS */}
+        {/* Meals */}
         <div className="dashboard-card bg-white dark:bg-gray-800 rounded-xl p-6">
-          <h3 className="text-lg font-medium mb-4">Today's Meals</h3>
+          <h3 className="mb-4 text-lg font-medium">Today's Meals</h3>
           <MealCard meals={stats.meals} />
         </div>
+      </div>
 
+      {/* HYDRATION */}
+      <div className="dashboard-card bg-white dark:bg-gray-800 rounded-xl p-6">
+        <h3 className="text-lg font-medium text-gray-700 dark:text-gray-200 mb-4">
+          Hydration Progress
+        </h3>
+
+        <div className="hydration-progress">
+          <div className="text-3xl font-bold text-cyan-500">
+            {stats.water.liters}L
+          </div>
+          <div className="text-gray-500 dark:text-gray-400">
+            out of 8L daily goal
+          </div>
+
+          <div className="mt-4 mb-2">
+            <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full">
+              <div
+                className="h-2 bg-cyan-500 rounded-full transition-all duration-500"
+                style={{ width: `${stats.water.percentage}%` }}
+              ></div>
+            </div>
+          </div>
+
+          <div className="flex justify-between text-sm text-gray-500">
+            <span>0L</span>
+            <span>4L</span>
+            <span>8L</span>
+          </div>
+        </div>
       </div>
 
       {/* CHARTS */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
 
-        {/* QUOTE */}
+        {/* Quote */}
         <div className="p-4 bg-white dark:bg-gray-800 rounded shadow">
           <h3 className="font-medium mb-2">Quote of the moment</h3>
-          {randomQuote ? (
+          {rquote ? (
             <blockquote className="italic text-gray-700 dark:text-gray-200">
-              "{randomQuote.text}" —{" "}
-              <span className="font-semibold">{randomQuote.author}</span>
+              "{rquote.text}" —
+              <span className="font-semibold not-italic">
+                {rquote.author}
+              </span>
             </blockquote>
           ) : (
             <div>No quotes available</div>
           )}
         </div>
 
-        {/* WATER TREND */}
+        {/* Achievements */}
         <div className="p-4 bg-white dark:bg-gray-800 rounded shadow">
-          <h3 className="font-medium mb-2">Water Intake Trend</h3>
-          {waterSeries.length ? (
-            <LineChartComponent data={waterSeries} dataKey="value" xKey="date" />
-          ) : (
-            <div className="text-sm text-gray-500">No water data yet.</div>
-          )}
+          <h3 className="font-medium mb-2">Recent Achievements</h3>
+
+          <div className="flex flex-wrap gap-2 mt-2">
+            {data.badges?.slice(0, 3).map((b) => (
+              <div
+                key={b.id}
+                className="px-3 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-100 rounded-full text-sm"
+              >
+                {b.name}
+              </div>
+            ))}
+
+            {!data.badges?.length && (
+              <p className="text-sm text-gray-500">No badges earned yet</p>
+            )}
+          </div>
         </div>
 
-        {/* MEDICINE COMPLIANCE */}
+        {/* Medicine Compliance */}
         <div className="p-4 bg-white dark:bg-gray-800 rounded shadow">
           <h3 className="font-medium mb-2">Medicine Compliance</h3>
           <PieChartComponent
             data={[
               { name: "Taken", value: stats.medicines.taken },
-              { name: "Pending", value: stats.medicines.total - stats.medicines.taken }
+              { name: "Pending", value: stats.medicines.total - stats.medicines.taken },
             ]}
           />
         </div>

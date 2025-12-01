@@ -1,40 +1,26 @@
 // src/pages/Reminders.jsx
 import React, { useState, useEffect } from "react";
 import { useData } from "../context/DataContext";
-import { useApp } from "../context/AppContext";
 import Modal from "../components/Modal";
 import ReminderForm from "./ReminderForm";
 
 export default function Reminders() {
-  // Prefer centralized AppContext; fall back to DataContext
-  let appCtx = null;
-  // eslint-disable-next-line react-hooks/rules-of-hooks, no-unused-vars
-  try { appCtx = useApp(); } catch (e) { appCtx = null; }
+  const dataCtx = useData();
 
-  let dataCtx = null;
-  // eslint-disable-next-line react-hooks/rules-of-hooks, no-unused-vars
-  try { dataCtx = useData(); } catch (e) { dataCtx = null; }
+  const updateReminderFn = dataCtx?.updateReminder;
+  const deleteReminderFn = dataCtx?.deleteReminder;
 
-  // Actions: prefer appCtx methods, otherwise dataCtx
-  const updateReminderFn = appCtx?.updateReminder ?? dataCtx?.updateReminder;
-  const deleteReminderFn = appCtx?.deleteReminder ?? dataCtx?.deleteReminder;
+  const remindersFromState = dataCtx?.state?.reminders ?? [];
+  const medicines = dataCtx?.state?.medicines ?? [];
 
-  // Source of truth for reminders: appCtx.state.reminders -> dataCtx.state.reminders -> local fallback
-  const appReminders = appCtx?.state?.reminders ?? null;
-  const dataReminders = dataCtx?.state?.reminders ?? null;
-
-  const appMedicines = appCtx?.state?.medicines ?? null;
-  const dataMedicines = dataCtx?.state?.medicines ?? null;
-  const medicines = appMedicines ?? dataMedicines ?? [];
-
-  const [reminders, setReminders] = useState(appReminders ?? dataReminders ?? []);
+  const [reminders, setReminders] = useState(remindersFromState);
   const [open, setOpen] = useState(false);
   const [edit, setEdit] = useState(null);
 
-  // Keep local reminders in sync whenever context changes
+  // Keep local reminders in sync whenever data context changes
   useEffect(() => {
-    setReminders(appReminders ?? dataReminders ?? []);
-  }, [appReminders, dataReminders]);
+    setReminders(remindersFromState);
+  }, [remindersFromState]);
 
   const onAdd = () => { setEdit(null); setOpen(true); };
   const onEdit = (r) => { setEdit(r); setOpen(true); };
@@ -42,7 +28,7 @@ export default function Reminders() {
   // Mark as taken
   const markTaken = async (r) => {
     if (!updateReminderFn) {
-      console.warn("updateReminder not available in context.");
+      console.warn("updateReminder not available in DataContext.");
       return;
     }
     try {
@@ -55,7 +41,7 @@ export default function Reminders() {
 
   const handleDelete = async (id) => {
     if (!deleteReminderFn) {
-      console.warn("deleteReminder not available in context.");
+      console.warn("deleteReminder not available in DataContext.");
       return;
     }
     if (!confirm("Are you sure you want to delete this reminder?")) return;
